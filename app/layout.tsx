@@ -1,5 +1,5 @@
 import './globals.css';
-import { AblyClientProvider } from './AblyClientProvider';
+import {AblyClientProvider} from './AblyClientProvider';
 
 export default function RootLayout({
   children,
