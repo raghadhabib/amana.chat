@@ -13,24 +13,19 @@ export async function GET(request) {
     }
 
     // 2. Use the REST.Promise client for server-side token generation
-    const client = new Ably.Rest.Promise({ // <--- Changed to Rest.Promise
+    const client = new Ably.Rest.Promise({
         key: process.env.ABLY_API_KEY,
     });
-    
+
     // Attempt to get the clientId from the request URL/query parameters
     const url = new URL(request.url);
+    // Get clientId from the query string
     const clientId = url.searchParams.get('clientId');
-    
-    // Check if clientId is provided (using the one hardcoded in the client)
-    if (!clientId) {
-        // Fallback for production safety, but the client should always send one
-        const fallbackClientId = 'anonymous-' + Math.random().toString(36).substring(2, 9);
-        console.warn(`No clientId provided. Using fallback: ${fallbackClientId}`);
-    }
 
     // 3. Create a token request
+    // Use the requested clientId, or 'anonymous-user' as a fallback if not provided
     const tokenRequest = await client.auth.createTokenRequest({
-        clientId: clientId || 'anonymous-user', 
+        clientId: clientId || 'anonymous-user',
     });
 
     return NextResponse.json(tokenRequest);

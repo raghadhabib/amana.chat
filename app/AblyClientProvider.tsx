@@ -1,42 +1,48 @@
-// app/AblyClientProvider.tsx (New, Correct Imports)
+// app/AblyClientProvider.tsx
 
 'use client';
 
-import { AblyProvider } from 'ably/react'; 
-// FIX 1: Import the Realtime.Promise constructor directly
-import { Realtime as RealtimePromise } from 'ably'; 
-// FIX 2: Use the Types namespace from the main 'ably' package (cleaner than path import)
-import * as Types from 'ably/modules/types/default'; 
+// 1. Import AblyProvider from the React package
+import { AblyProvider } from 'ably/react';
+
+// 2. Import the Realtime constructor and Types namespace directly from the main 'ably' package.
+import { Realtime as RealtimeConstructor } from 'ably';
+import type { Types } from 'ably'; // Import 'Types' namespace only for type checking
 
 import { useMemo } from 'react';
-// ...
 
-// Client ID used to generate the token
-const ABLY_CLIENT_ID = 'self-user-123';
+// The type for the client is derived directly from the RealtimeConstructor
+// This is the safest way to ensure the type matches the actual instance.
+type AblyRealtimeClient = RealtimeConstructor;
+
+// The Client ID used by this specific instance of the app
+const ABLY_CLIENT_ID = 'self-user-A'; // <-- CHANGE TO 'self-user-B' IN A SECOND TAB FOR TESTING
 
 export function AblyClientProvider({ children }: { children: React.ReactNode }) {
-    
-    const client = useMemo(() => {
-        // FIX: Use the imported name RealtimePromise directly as the constructor
-        const ablyClient = new RealtimePromise({ 
-            authUrl: '/api/auth',
-            clientId: ABLY_CLIENT_ID,
-        });
 
-        // FIX APPLIED HERE: Added type annotation (stateChange: Types.ConnectionStateChange)
-        ablyClient.connection.on((stateChange: Types.ConnectionStateChange) => {
-            if (stateChange.current === 'connected') {
-                console.log('✅ Ably is connected and authenticated!');
-            }
-        });
+    // Use the derived type 'AblyRealtimeClient'
+    const client = useMemo((): AblyRealtimeClient => {
+        
+        // Use the Realtime constructor directly
+        const ablyClient = new RealtimeConstructor({ 
+            authUrl: '/api/auth',
+            clientId: ABLY_CLIENT_ID,
+        });
 
-        return ablyClient;
-        
-    }, []); 
+        // Use Types.ConnectionStateChange from the top-level Types import for the listener
+        ablyClient.connection.on((stateChange: Types.ConnectionStateChange) => {
+            if (stateChange.current === 'connected') {
+                console.log(`✅ Ably is connected and authenticated as ${ablyClient.auth.clientId}!`);
+            }
+        });
 
-    return (
-        <AblyProvider client={client}>
-            {children}
-        </AblyProvider>
-    );
+        return ablyClient;
+
+    }, []);
+
+    return (
+        <AblyProvider client={client}>
+            {children}
+        </AblyProvider>
+    );
 }
