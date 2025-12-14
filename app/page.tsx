@@ -2,29 +2,29 @@
 'use client'; // <-- This directive makes it a client component
 
 import React, { useState, useEffect, useRef } from 'react';
-// FIX: Use the modern Ably hook import path and add useAbly
-import { useChannel, useAbly } from "ably/react";
+// FIX: Import both useChannel and useAbly
+import { useChannel, useAbly } from "ably/react"; 
 import { Send } from 'lucide-react'; 
-import type { RealtimeChannel, Types } from 'ably';
+// REMOVE: import * as Ably from 'ably'; // Not needed anymore
 
 // Change these lines at the top of app/page.js
 const SENDER_ID = 'alice-user-456'; 
 const RECEIVER_ID = 'self-user-123'; 
 const RECEIVER_NAME = 'Original User'; 
 
-// --- Interfaces for Component Props (Re-added for TypeScript) ---
+// --- Interfaces for Component Props ---
 interface ContactCardProps {
-    id: string; // ID is required in the MOCK_CONTACTS data
-    name: string;
-    status: 'Online' | 'Offline'; 
-    lastMessage: string;
-    isSelected: boolean;
+    id: string; 
+    name: string;
+    status: 'Online' | 'Offline'; 
+    lastMessage: string;
+    isSelected: boolean;
 }
 
 interface MessageBubbleProps {
-    user: string;
-    text: string;
-    timestamp: number;
+    user: string;
+    text: string;
+    timestamp: number;
 }
 
 // Utility to create a consistent channel name between two users
@@ -34,7 +34,7 @@ const getPrivateChannelName = (userId1: string, userId2: string): string => {
   return `chat:private:${sortedIds[0]}-${sortedIds[1]}`;
 };
 
-// --- Reusable Components (Now with correct types) ---
+// --- Reusable Components ---
 
 const ContactCard = ({ name, status, lastMessage, isSelected }: ContactCardProps) => (
     <div className={`flex items-center p-4 cursor-pointer transition-colors border-b border-zinc-200 ${isSelected ? 'bg-blue-100/70' : 'hover:bg-zinc-100'}`}>
@@ -81,16 +81,16 @@ export default function ChatPage() {
     // 1. Determine the channel name for the private chat
     const channelName = getPrivateChannelName(SENDER_ID, RECEIVER_ID);
     
-    // 2. Use the Ably useChannel hook (only destructure channel to avoid TS error)
-    const [channel, ably]: [RealtimeChannel, Types.RealtimeCallbacks] = useChannel(channelName, (message) => {
-        // Cast message.data to the expected type to satisfy TypeScript
-        setMessages(prev => [...prev, message.data as MessageBubbleProps]);
-    });
+    // 2. Get the Ably client instance (ably object) separately.
+    const ably = useAbly(); // <--- Get ably instance here
     
-    // 3. Get the Ably instance explicitly from the context hook
-    // This resolves the TS error and the 'ably is never read' warning simultaneously.
-   
-
+    // 3. Use the Ably useChannel hook - only destructure the channel.
+    const channelResult = useChannel(channelName, (message) => { // <--- NEW LINE: Assign to a single variable
+    // Cast message.data to the expected type to satisfy TypeScript
+    setMessages(prev => [...prev, message.data as MessageBubbleProps]);
+});
+const channel = channelResult.channel;
+    
 
     // Auto-scroll to the bottom of the message list
     useEffect(() => {
@@ -116,6 +116,7 @@ export default function ChatPage() {
         setMessageText('');
     };
     
+    // Check readiness using the channel state
     const isReady = channel && channel.state === 'attached';
 
     // Mock contact list for UI purposes
@@ -168,8 +169,8 @@ export default function ChatPage() {
                 
                 {/* Typing Indicator (Placeholder) */}
                 <div className="p-2 text-sm text-zinc-500 border-t border-zinc-200 h-8">
-    Status: {ably?.connection.state} - Channel: {channel?.state}
-    {!isReady && <span className="text-red-500">Connecting...</span>}
+    Status: {ably?.connection.state} - Channel: {channel?.state}
+    {!isReady && <span className="text-red-500">Connecting...</span>}
 </div>
 
                 {/* Message Input Bar */}

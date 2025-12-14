@@ -27,10 +27,10 @@ export default function RootLayout({
 }>) {
 return (
 <html lang="en">
-<body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
- {/* --- NEW WRAPPER --- */}
- <AblyClientProvider>
- {children}
-</AblyClientProvider>
-</body>
-</html>);}
+      <body>
+        {/* 2. Wrap the children with the AblyClientProvider */}
+        <AblyClientProvider> 
+          {children}
+        </AblyClientProvider>
+      </body>
+    </html>);}
