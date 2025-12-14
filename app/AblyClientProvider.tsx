@@ -1,38 +1,42 @@
-// app/AblyClientProvider.tsx
+// app/AblyClientProvider.tsx (New, Correct Imports)
+
 'use client';
 
-// Use the modern, correct import path for the provider and hooks
-import { AblyProvider } from 'ably/react'; 
-import { Realtime } from 'ably';
+import { AblyProvider } from 'ably/react'; 
+// FIX 1: Import the Realtime.Promise constructor directly
+import { Realtime as RealtimePromise } from 'ably'; 
+// FIX 2: Use the Types namespace from the main 'ably' package (cleaner than path import)
+import * as Types from 'ably/modules/types/default'; 
+
 import { useMemo } from 'react';
+// ...
 
 // Client ID used to generate the token
 const ABLY_CLIENT_ID = 'self-user-123';
 
 export function AblyClientProvider({ children }: { children: React.ReactNode }) {
-    
-    // Use useMemo to ensure the client instance is created only once (singleton)
-    const client = useMemo(() => {
-        // Create the Ably Realtime Client. It uses the serverless /api/auth route to get a token.
-        const ablyClient = new Realtime({
-            authUrl: '/api/auth',
-            clientId: ABLY_CLIENT_ID,
-        });
+    
+    const client = useMemo(() => {
+        // FIX: Use the imported name RealtimePromise directly as the constructor
+        const ablyClient = new RealtimePromise({ 
+            authUrl: '/api/auth',
+            clientId: ABLY_CLIENT_ID,
+        });
 
-        // Optional: Add a connection status listener for debugging
-        ablyClient.connection.on((stateChange) => {
-            if (stateChange.current === 'connected') {
-                console.log('✅ Ably is connected and authenticated!');
-            }
-        });
+        // FIX APPLIED HERE: Added type annotation (stateChange: Types.ConnectionStateChange)
+        ablyClient.connection.on((stateChange: Types.ConnectionStateChange) => {
+            if (stateChange.current === 'connected') {
+                console.log('✅ Ably is connected and authenticated!');
+            }
+        });
 
-        return ablyClient;
-        
-    }, []); // Empty dependency array ensures it's only created once
+        return ablyClient;
+        
+    }, []); 
 
-    return (
-        <AblyProvider client={client}>
-            {children}
-        </AblyProvider>
-    );
+    return (
+        <AblyProvider client={client}>
+            {children}
+        </AblyProvider>
+    );
 }
