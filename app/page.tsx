@@ -21,12 +21,12 @@ export default function LoginPage() {
         onSubmit={handleLogin}
         className="bg-white p-6 rounded shadow-md w-80 flex flex-col space-y-4"
       >
-        <h1 className="text-2xl font-bold text-center">Login</h1>
+        <h1 className="text-2xl font-bold text-center text-blue-500">Login</h1>
         <input
           value={username}
           onChange={(e) => setUsername(e.target.value)}
           placeholder="Enter your username"
-          className="border p-2 rounded"
+          className="border p-2 rounded text-black bg-white"
         />
         <button
           type="submit"

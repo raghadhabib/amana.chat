@@ -64,7 +64,7 @@ const { channel } = useChannel(
             key={i}
             className={`p-2 rounded max-w-xs ${
               msg.user === username
-                ? 'bg-blue-500 text-white ml-auto'
+                ? 'bg-blue-500 text-black ml-auto'
                 : 'bg-gray-300'
             }`}
           >
@@ -83,11 +83,11 @@ const { channel } = useChannel(
           value={messageText}
           onChange={(e) => setMessageText(e.target.value)}
           placeholder="Type a message..."
-          className="flex-1 p-2 border rounded"
+          className="flex-1 p-2 border rounded text-black bg-white"
         />
         <button
           type="submit"
-          className="ml-2 bg-blue-500 text-white p-2 rounded"
+          className="ml-2 bg-blue-500 p-2 rounded"
         >
           <Send className="w-5 h-5" />
         </button>
