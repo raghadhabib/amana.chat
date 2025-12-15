@@ -1,30 +1,40 @@
 'use client';
 
 import { AblyProvider } from 'ably/react';
-import { Realtime as RealtimeConstructor } from 'ably';
-import type { ConnectionStateChange } from 'ably';
-import { useMemo } from 'react';
+import { Realtime } from 'ably';
+import { useEffect, useState } from 'react';
 
-export function AblyClientProvider({ children }: { children: React.ReactNode }) {
-  const client = useMemo(() => {
-    const clientId =
-      typeof window !== 'undefined'
-        ? localStorage.getItem('chatUsername') || 'anonymous-user'
-        : 'anonymous-user';
+export function AblyClientProvider({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  const [client, setClient] = useState<Realtime | null>(null);
 
-    const ablyClient = new RealtimeConstructor({
-      authUrl: '/api/auth',
-      clientId,
+  useEffect(() => {
+    const username = localStorage.getItem('chatUsername');
+
+    if (!username) return;
+
+    const ably = new Realtime({
+      authUrl: `/api/auth?clientId=${username}`,
+      clientId: username,
     });
 
-    ablyClient.connection.on((stateChange: ConnectionStateChange) => {
-      if (stateChange.current === 'connected') {
-        console.log(`✅ Ably connected as ${ablyClient.auth.clientId}`);
-      }
+    ably.connection.on('connected', () => {
+      console.log(`✅ Ably connected as ${username}`);
     });
 
-    return ablyClient;
+    setClient(ably);
+
+    return () => {
+      ably.close();
+    };
   }, []);
+
+  if (!client) {
+    return <div className="p-4">Connecting to chat…</div>;
+  }
 
   return <AblyProvider client={client}>{children}</AblyProvider>;
 }
