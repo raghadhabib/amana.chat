@@ -10,10 +10,16 @@ export function AblyClientProvider({
   children: React.ReactNode;
 }) {
   const [client, setClient] = useState<Realtime | null>(null);
+  const [username, setUsername] = useState<string | null>(null);
 
+  // Read username AFTER hydration
   useEffect(() => {
-    const username = localStorage.getItem('chatUsername');
+    const name = localStorage.getItem('chatUsername');
+    setUsername(name);
+  }, []);
 
+  // Create Ably client ONLY when username exists
+  useEffect(() => {
     if (!username) return;
 
     const ably = new Realtime({
@@ -30,7 +36,7 @@ export function AblyClientProvider({
     return () => {
       ably.close();
     };
-  }, []);
+  }, [username]);
 
   if (!client) {
     return <div className="p-4">Connecting to chat…</div>;
