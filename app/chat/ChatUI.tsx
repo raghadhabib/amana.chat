@@ -3,7 +3,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useChannel } from 'ably/react';
-import { Send } from 'lucide-react';
+import { Send , User } from 'lucide-react';
 
 interface ChatMessage {
   user: string;
@@ -18,88 +18,66 @@ export default function ChatUI() {
   const [messageText, setMessageText] = useState('');
   const messageEndRef = useRef<HTMLDivElement>(null);
 
-  // ✅ Get username and photo
   const username =
     typeof window !== 'undefined'
       ? localStorage.getItem('chatUsername')
       : null;
+
   const userPhoto =
     typeof window !== 'undefined'
       ? localStorage.getItem('chatUserPhoto') || '/default-profile.png'
       : '/default-profile.png';
 
-  // ✅ Redirect if not logged in
+  // Redirect if not logged in
   useEffect(() => {
     if (!username || username === 'anonymous-user') {
       router.replace('/');
     }
   }, [username, router]);
 
-  // ✅ Ably channel listener
+  // Ably channel listener
   const { channel } = useChannel('chat', 'message', (msg) => {
     setMessages((prev) => [...prev, msg.data as ChatMessage]);
   });
 
-  // ✅ Fetch previous messages from server
+  // Auto scroll
   useEffect(() => {
-    async function fetchMessages() {
-      try {
-        const res = await fetch('/api/messages');
-        if (!res.ok) throw new Error('Failed to fetch messages');
-        const data: ChatMessage[] = await res.json();
-        setMessages(data);
-      } catch (err) {
-        console.error(err);
-      }
-    }
-    fetchMessages();
-  }, []);
+    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
-  // ✅ Send message
-  const sendMessage = async (e: React.FormEvent) => {
+  const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!channel || !messageText.trim() || !username) return;
+    if (!channel || !messageText.trim()) return;
 
     const newMessage: ChatMessage = {
-      user: username,
+      user: username!,
       photo: userPhoto,
       text: messageText.trim(),
       timestamp: Date.now(),
     };
 
-    // Send to Ably
     channel.publish('message', newMessage);
-
-    // Send to backend API
-    try {
-      await fetch('/api/messages', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(newMessage),
-      });
-    } catch (err) {
-      console.error('Failed to save message', err);
-    }
-
     setMessages((prev) => [...prev, newMessage]);
     setMessageText('');
   };
 
-  // ✅ Auto scroll
-  useEffect(() => {
-    messageEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
   return (
-    <div className="flex h-screen flex-col bg-gray-100">
+    <div className="flex flex-col h-[80vh] bg-white rounded-lg shadow-lg overflow-hidden">
+      {/* Top user info */}
+       <div className="flex items-center gap-3 p-4 border-b border-gray-200 bg-gray-50">
+          <div className="w-10 h-10 bg-blue-500 rounded-full flex items-center justify-center text-white">
+            <User className="w-6 h-6" />
+          </div>
+          <span className="font-semibold text-gray-700">{username ?? 'User'}</span>
+        </div>
+
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-2">
+      <div className="flex-1 overflow-y-auto p-4 space-y-2 bg-gray-100">
         {messages.map((msg, i) => {
           const time = new Date(msg.timestamp).toLocaleTimeString([], {
             hour: '2-digit',
             minute: '2-digit',
           });
-
           const isMe = msg.user === username;
 
           return (
