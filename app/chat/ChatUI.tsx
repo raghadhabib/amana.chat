@@ -31,33 +31,24 @@ export default function ChatUI() {
   }, [username, router]);
 
   // ✅ Ably channel listener
-  const { channel } = useChannel(
-    'chat',
-    'message',
-    (msg) => {
-      setMessages((prev) => [...prev, msg.data as ChatMessage]);
-    }
-  );
+  const { channel } = useChannel('chat', 'message', (msg) => {
+  setMessages((prev) => [...prev, msg.data as ChatMessage]);
+});
 
   // ✅ Send message
   const sendMessage = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!channel || !messageText.trim()) return;
+  e.preventDefault();
+  if (!channel || !messageText.trim()) return;
 
-    const newMessage: ChatMessage = {
-      user: username ?? 'unknown',
-      text: messageText.trim(),
-      timestamp: Date.now(),
-    };
-
-    // publish to Ably
-    channel.publish('message', newMessage);
-
-    // instantly show message
-    setMessages((prev) => [...prev, newMessage]);
-
-    setMessageText('');
+  const newMessage: ChatMessage = {
+    user: username ?? 'unknown',
+    text: messageText.trim(),
+    timestamp: Date.now(),
   };
+
+  channel.publish('message', newMessage);
+  setMessageText('');
+};
 
   // ✅ Auto scroll
   useEffect(() => {
