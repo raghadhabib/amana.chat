@@ -1,21 +1,26 @@
-// app/api/send-message/route.ts
 import { NextResponse } from 'next/server';
+
+let messageStore: {
+  user: string;
+  text: string;
+  timestamp: number;
+}[] = [];
+
+export async function GET() {
+  return NextResponse.json(messageStore);
+}
 
 export async function POST(request: Request) {
   try {
-    const { text } = await request.json();
-
-    if (!text || text.trim() === '') {
-      return NextResponse.json({ error: 'Empty message' }, { status: 400 });
+    const msg = await request.json();
+    if (!msg.text || !msg.user) {
+      return NextResponse.json({ error: 'Invalid message' }, { status: 400 });
     }
 
-    // Here you can integrate a database, Ably, or other logic
-    console.log('Message received:', text);
-
-    // Return response
-    return NextResponse.json({ text: text.trim(), time: new Date().toISOString() });
-  } catch (error) {
-    console.error(error);
-    return NextResponse.json({ error: 'Failed to send message' }, { status: 500 });
+    messageStore.push(msg);
+    return NextResponse.json(msg);
+  } catch (err) {
+    console.error(err);
+    return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
   }
 }

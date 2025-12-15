@@ -9,6 +9,7 @@ interface ChatMessage {
   user: string;
   text: string;
   timestamp: number;
+  photo?: string;
 }
 
 export default function ChatUI() {
@@ -17,11 +18,15 @@ export default function ChatUI() {
   const [messageText, setMessageText] = useState('');
   const messageEndRef = useRef<HTMLDivElement>(null);
 
-  // ✅ Get username
+  // ✅ Get username and photo
   const username =
     typeof window !== 'undefined'
       ? localStorage.getItem('chatUsername')
       : null;
+  const userPhoto =
+    typeof window !== 'undefined'
+      ? localStorage.getItem('chatUserPhoto') || '/default-profile.png'
+      : '/default-profile.png';
 
   // ✅ Redirect if not logged in
   useEffect(() => {
@@ -32,23 +37,53 @@ export default function ChatUI() {
 
   // ✅ Ably channel listener
   const { channel } = useChannel('chat', 'message', (msg) => {
-  setMessages((prev) => [...prev, msg.data as ChatMessage]);
-});
+    setMessages((prev) => [...prev, msg.data as ChatMessage]);
+  });
+
+  // ✅ Fetch previous messages from server
+  useEffect(() => {
+    async function fetchMessages() {
+      try {
+        const res = await fetch('/api/messages');
+        if (!res.ok) throw new Error('Failed to fetch messages');
+        const data: ChatMessage[] = await res.json();
+        setMessages(data);
+      } catch (err) {
+        console.error(err);
+      }
+    }
+    fetchMessages();
+  }, []);
 
   // ✅ Send message
-  const sendMessage = (e: React.FormEvent) => {
-  e.preventDefault();
-  if (!channel || !messageText.trim()) return;
+  const sendMessage = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!channel || !messageText.trim() || !username) return;
 
-  const newMessage: ChatMessage = {
-    user: username ?? 'unknown',
-    text: messageText.trim(),
-    timestamp: Date.now(),
+    const newMessage: ChatMessage = {
+      user: username,
+      photo: userPhoto,
+      text: messageText.trim(),
+      timestamp: Date.now(),
+    };
+
+    // Send to Ably
+    channel.publish('message', newMessage);
+
+    // Send to backend API
+    try {
+      await fetch('/api/messages', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(newMessage),
+      });
+    } catch (err) {
+      console.error('Failed to save message', err);
+    }
+
+    setMessages((prev) => [...prev, newMessage]);
+    setMessageText('');
   };
-
-  channel.publish('message', newMessage);
-  setMessageText('');
-};
 
   // ✅ Auto scroll
   useEffect(() => {
@@ -70,26 +105,29 @@ export default function ChatUI() {
           return (
             <div
               key={i}
-              className={`max-w-xs px-3 py-2 rounded-lg flex flex-col gap-1 ${
-                isMe
-                  ? 'bg-blue-500 text-white ml-auto'
-                  : 'bg-gray-200 text-black mr-auto'
+              className={`flex items-start gap-2 max-w-xs ${
+                isMe ? 'ml-auto flex-row-reverse' : 'mr-auto'
               }`}
             >
-              {/* Username */}
-              <span className="text-xs font-semibold opacity-80">
-                {isMe ? 'You' : msg.user}
-              </span>
+              {/* Profile photo */}
+              <img
+                src={msg.photo || '/default-profile.png'}
+                alt={msg.user}
+                className="w-8 h-8 rounded-full object-cover"
+              />
 
-              {/* Message text */}
-              <p className="text-sm leading-snug break-words">
-                {msg.text}
-              </p>
-
-              {/* Time */}
-              <span className="text-[10px] opacity-70 self-end">
-                {time}
-              </span>
+              {/* Message bubble */}
+              <div
+                className={`px-3 py-2 rounded-lg flex flex-col gap-1 ${
+                  isMe ? 'bg-blue-500 text-white' : 'bg-gray-200 text-black'
+                }`}
+              >
+                <span className="text-xs font-semibold opacity-80">
+                  {isMe ? 'You' : msg.user}
+                </span>
+                <p className="text-sm leading-snug break-words">{msg.text}</p>
+                <span className="text-[10px] opacity-70 self-end">{time}</span>
+              </div>
             </div>
           );
         })}
