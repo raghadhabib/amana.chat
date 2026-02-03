@@ -1,26 +1,14 @@
-import { NextResponse } from 'next/server';
+import { NextResponse } from "next/server";
+import Ably from "ably";
 
-let messageStore: {
-  user: string;
-  text: string;
-  timestamp: number;
-}[] = [];
+const client = new Ably.Rest({
+  key: process.env.API_KEY!, // Make sure to set this in .env
+});
 
 export async function GET() {
-  return NextResponse.json(messageStore);
-}
+  const tokenRequest = await client.auth.createTokenRequest({
+    clientId: `user-${Math.random().toString(36).slice(2)}`, // unique user ID
+  });
 
-export async function POST(request: Request) {
-  try {
-    const msg = await request.json();
-    if (!msg.text || !msg.user) {
-      return NextResponse.json({ error: 'Invalid message' }, { status: 400 });
-    }
-
-    messageStore.push(msg);
-    return NextResponse.json(msg);
-  } catch (err) {
-    console.error(err);
-    return NextResponse.json({ error: 'Failed to save message' }, { status: 500 });
-  }
+  return NextResponse.json(tokenRequest);
 }
